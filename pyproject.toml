@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "k-llmsat-parse"
+version = "0.1.0"
+description = ""
+authors = ["GusalsTheNoob <61675516+Hyeonmin-Kim@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "k_llmsat_parse"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
