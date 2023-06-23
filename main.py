@@ -1,5 +1,3 @@
-import eel
 
-eel.init('web')
 
-eel.start('main.html')
+extractor = Extractor(INPUT_PATH, OUTPUT_PATH)
