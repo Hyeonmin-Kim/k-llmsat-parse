@@ -1,4 +1,5 @@
 resources
 results
+intermediaries
 web/img/pages/
 */__pycache__
