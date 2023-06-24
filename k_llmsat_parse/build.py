@@ -22,8 +22,9 @@ PARENT_DICT = {
 
 class Builder:
 
-    def __init__(self):
+    def __init__(self, option_num:int):
         self.success_flag = True
+        self.option_num = option_num
 
     def build(self, filepath:str, output_path:str):
         # 1. initialization
@@ -45,7 +46,7 @@ class Builder:
         # 4. saving
         self.__save_as_json(filename, output_path, dataset)
         # 5. summary
-        self.__summurize_result(filename, dataset)
+        self.__verify_and_summurize_result(filename, dataset)
 
 
     def __parse(self, temp:dict, temp_idx:int, lines:list[str], filepath:str) -> int:
@@ -146,25 +147,67 @@ class Builder:
         with open(filepath, 'w', encoding="UTF-8-SIG") as file:
             json.dump(dataset, file, indent=4)
 
-    def __summurize_result(self, filename:str, dataset:dict, width:int=80):
+    def __verify_and_summurize_result(self, filename:str, dataset:dict, width:int=80):
+        issues = []
         print('=' * width)
         print(f"Build Result Summary of {filename} {'✅' if self.success_flag else '❌'}".center(width))
         print()
         print(f"<{len(dataset['contents'])} groups>".center(width))
         for i, group in enumerate(dataset['contents']):
+            verificaiton_result = self.__verify_group(group, i)
+            issues += verificaiton_result
             q_names = [str(q['number']) for q in group['questions']]
-            print(f"Group {i + 1} : {', '.join(q_names)}")
+            print(f"{'❌' if verificaiton_result else '✅'} Group {str(i + 1).ljust(3)} : {', '.join(q_names)}")
         print()
         questions = list(chain(*[group['questions'] for group in dataset['contents']]))
+        print(f"<{len(questions)} questions>".center(width))
         q_width = (width - 20) // 2
         for j, question in enumerate(questions):
+            verificaiton_result = self.__verify_question(question, j)
+            issues += verificaiton_result
             direction = question['direction'][0]
-            print(f"Q{str(j + 1).ljust(5)} {str(question['weight']).rjust(3)}pts   {direction[:q_width]}{'...' if len(direction) > q_width else ''}")
+            print(f"{'❌' if verificaiton_result else '✅'} Q{str(j + 1).ljust(5)} ({len(question['passages'])}) {str(question['weight']).rjust(3)}pts   {direction[:q_width]}{'...' if len(direction) > q_width else ''}")
         print()
+        print(f"<issues>".center(width))
+        for issue in issues:
+            print(issue)
+        print()
+        if issues:
+            self.success_flag = False
+        print(f"<stats>".center(width))
         print(f"Number of questions: {len(questions)}")
         print(f"Total score: {sum([q['weight'] for q in questions])}")
         print(f"Parsing Result: {'✅ Success' if self.success_flag else '❌ Error present'}")
         print('=' * width)
+
+    def __verify_group(self, group:dict, group_idx:int) -> list[str]:
+        issues = []
+        if not group['direction']:
+            issues.append(f"❌ Group {group_idx} : Empty direction!")
+        if not group['passages']:
+            issues.append(f"❌ Group {group_idx} : No passage present!")
+        else:
+            for p_idx, passage in enumerate(group['passages']):
+                issues += self.__verify_passage(passage, f"Group {group_idx}, Passage {p_idx}")
+        return issues
+    
+    def __verify_question(self, question:dict, q_idx:int) -> list[str]:
+        issues = []
+        if not question['direction']:
+            issues.append(f"❌ Question {q_idx} : Empty direction!")
+        if len(question['options']) != self.option_num:
+            issues.append(f"❌ Question {q_idx} : {len(question['options'])} options are given where {self.option_num} are expected.")
+        if question['passages']:
+            for p_idx, passage in enumerate(question['passages']):
+                issues += self.__verify_passage(passage, f"Question {q_idx}, Passage {p_idx}")
+        return issues
+
+    def __verify_passage(self, passage:dict, passage_name:str) -> list[str]:
+        issues = []
+        if not passage['paragraphs']:
+            issues.append(f"❌ {passage_name} : Empty passage!")
+        return issues
+
 
 class BuilderError(Exception):
     ...
