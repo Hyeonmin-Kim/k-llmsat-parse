@@ -1,3 +1,4 @@
+from itertools import chain
 import json
 import os
 
@@ -22,10 +23,11 @@ PARENT_DICT = {
 class Builder:
 
     def __init__(self):
-        ...
+        self.success_flag = True
 
     def build(self, filepath:str, output_path:str):
         # 1. initialization
+        self.success_flag = True
         filename = os.path.basename(filepath).split(".")[0]
         dataset = {
             'type': 'dataset',
@@ -42,6 +44,8 @@ class Builder:
             temp_idx = self.__parse(temp=dataset, temp_idx=temp_idx, lines=lines, filepath=filepath)
         # 4. saving
         self.__save_as_json(filename, output_path, dataset)
+        # 5. summary
+        self.__summurize_result(filename, dataset)
 
 
     def __parse(self, temp:dict, temp_idx:int, lines:list[str], filepath:str) -> int:
@@ -63,6 +67,7 @@ class Builder:
                 raise BuilderError(f"🚧 Unexpected token at line {temp_idx} of {filepath} : {lines[temp_idx]}")
             return temp_idx
         except BuilderError as e:
+            self.success_flag = False
             print(e)
             temp_idx += 1
             while temp_idx < len(lines) and lines[temp_idx][:3] not in PARENT_DICT.keys():
@@ -115,7 +120,7 @@ class Builder:
         new_question = {
             'type': 'question',
             'number': -1,           ## TODO: Parsing question numbers
-            'weight': -1,           ## TODO: Parsing assigned score for each questions
+            'weight': 10,           ## TODO: Parsing assigned score for each questions
             'direction' : [],
             'passages': [],
             'options': []
@@ -140,6 +145,26 @@ class Builder:
         filepath = os.path.join(output_path, f"{filename}.json")
         with open(filepath, 'w', encoding="UTF-8-SIG") as file:
             json.dump(dataset, file, indent=4)
+
+    def __summurize_result(self, filename:str, dataset:dict, width:int=80):
+        print('=' * width)
+        print(f"Build Result Summary of {filename} {'✅' if self.success_flag else '❌'}".center(width))
+        print()
+        print(f"<{len(dataset['contents'])} groups>".center(width))
+        for i, group in enumerate(dataset['contents']):
+            q_names = [str(q['number']) for q in group['questions']]
+            print(f"Group {i + 1} : {', '.join(q_names)}")
+        print()
+        questions = list(chain(*[group['questions'] for group in dataset['contents']]))
+        q_width = (width - 20) // 2
+        for j, question in enumerate(questions):
+            direction = question['direction'][0]
+            print(f"Q{str(j + 1).ljust(5)} {str(question['weight']).rjust(3)}pts   {direction[:q_width]}{'...' if len(direction) > q_width else ''}")
+        print()
+        print(f"Number of questions: {len(questions)}")
+        print(f"Total score: {sum([q['weight'] for q in questions])}")
+        print(f"Parsing Result: {'✅ Success' if self.success_flag else '❌ Error present'}")
+        print('=' * width)
 
 class BuilderError(Exception):
     ...
