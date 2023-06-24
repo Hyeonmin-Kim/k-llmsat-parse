@@ -11,10 +11,10 @@ class Extractor:
         self.separate_pages = separate_pages
 
     def extract(self, filepath:str, output_path:str):
-        texts = self._extract(filepath)
-        self._save_to_txt(filepath, output_path, texts)
+        texts = self.__extract(filepath)
+        self.__save_to_txt(filepath, output_path, texts)
 
-    def _extract(self, filepath:str) -> list[str]:
+    def __extract(self, filepath:str) -> list[str]:
         reader = PdfReader(filepath)
         total_pages = len(reader.pages)
         texts = []
@@ -26,7 +26,7 @@ class Extractor:
                 raise ExtractorError(f"❌ PDF parsing has failed at page {curr_page + 1}.")
         return texts
 
-    def _save_to_txt(self, filepath:str, output_path:str, texts:list[str]):
+    def __save_to_txt(self, filepath:str, output_path:str, texts:list[str]):
         filename = os.path.basename(filepath).split('.')[0]
         with open(os.path.join(output_path, f"{filename}.txt"), 'w', encoding="UTF-8-SIG") as file:
             for i, page_text in enumerate(texts):
