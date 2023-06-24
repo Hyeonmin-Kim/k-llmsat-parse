@@ -1,46 +1,38 @@
 import os
-import traceback
 
 from pypdf import PdfReader
 
 from k_llmsat_parse.parse import standard_parse
 
 class Extractor:
-    input_dir:str
-    output_dir:str
+    separate_pages:bool
 
-    def __init__(self, input_dir:str, output_dir:str):
-        self.input_dir = input_dir
-        self.output_dir = output_dir
+    def __init__(self, separate_pages:bool=True):
+        self.separate_pages = separate_pages
 
-    def parse_all(self):
-        for pdf in os.listdir(self.input_dir):
-            if pdf.endswith(".pdf"):
-                print(f"✅ Start parsing {pdf}...")
-                self.parse_file(pdf)
+    def extract(self, filepath:str, output_path:str):
+        texts = self._extract(filepath)
+        self._save_to_txt(filepath, output_path, texts)
 
-    def parse_file(self, filename:str):
-        filepath = os.path.join(self.input_dir, filename)
-        texts = self._parse(filepath)
-        self._save_to_txt(filename, texts)
-
-    def _parse(self, filepath:str) -> list[str]:
+    def _extract(self, filepath:str) -> list[str]:
         reader = PdfReader(filepath)
         total_pages = len(reader.pages)
-        result = []
+        texts = []
         for curr_page in range(total_pages):
             try:
                 text = reader.pages[curr_page].extract_text()
-                result.append(standard_parse(text))
+                texts.append(standard_parse(text))
             except Exception:
-                print(f"❌ PDF parsing has failed at page {curr_page + 1}.")
-                traceback.print_exc()
-        print(f"✅ Done parsing {filepath}")
-        return result
+                raise ExtractorError(f"❌ PDF parsing has failed at page {curr_page + 1}.")
+        return texts
 
-    def _save_to_txt(self, filename:str, texts:list[str]):
-        filepath = os.path.join(self.output_dir, f"{filename}.txt")
-        with open(filepath, 'w', encoding="UTF-16") as file:
-            for page_text in texts:
+    def _save_to_txt(self, filepath:str, output_path:str, texts:list[str]):
+        filename = os.path.basename(filepath).split('.')[0]
+        with open(os.path.join(output_path, f"{filename}.txt"), 'w', encoding="UTF-8-SIG") as file:
+            for i, page_text in enumerate(texts):
+                if self.separate_pages:
+                    file.write(f"\n\n===================[PAGE {i + 1}/{len(texts)}]===================\n\n")
                 file.write(page_text)
-        print(f"✅ Parsed result saved at {filepath}")
+
+class ExtractorError(Exception):
+    ...

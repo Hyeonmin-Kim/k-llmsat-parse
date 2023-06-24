@@ -1,10 +1,13 @@
 # K-LLMSAT-PARSE
 
-An interactive GUI for efficient test parsing
+A helper module for efficient test parsing
+
+## How to Use
+
 
 ## Workflow
 
 - [x] Parsing pdf to txt files
 - [x] Manual cleaning
 - [x] Parsing txt to json
-- [ ] Rendering with basic prompting rule
+- [x] Rendering with basic prompting rule

@@ -1,5 +1,5 @@
-resources
-results
-intermediaries
-web/img/pages/
+resources/*
+results/*
+intermediaries/converted/*
+intermediaries/parsed/*
 */__pycache__
