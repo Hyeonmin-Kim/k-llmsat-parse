@@ -26,9 +26,6 @@ class Builder:
                 self.build_data(txt)
 
     def build_data(self, filename:str):
-        data = self._build(filename)
-
-    def _build(self, filename:str) -> dict:
         # 1. initialization
         filepath = os.path.join(self.input_dir, filename)
         data = {
@@ -43,7 +40,6 @@ class Builder:
         temp_idx = 0
         while temp_idx < len(lines):
             temp_idx = self._parse(temp=data['contents'], temp_idx=temp_idx, lines=lines, filename=filename)
-        print(data)
         # 4. saving
         self._save_as_json(filename=filename, data=data)
 
