@@ -5,14 +5,13 @@ from k_llmsat_parse.build import Builder, BuilderError
 
 INPUT_PATH = "./intermediaries/parsed/"
 OUTPUT_PATH = "./results/"
-OPTION_NUM = 5 ## 선택지 개수
 
 def build():
     if not (2 <= len(sys.argv) <=3):
         raise TypeError(f"❌ Expect 1 or 2 arguments but {len(sys.argv) - 1} are given.")
     parsed_txt_paths = get_input_paths("txt", INPUT_PATH, *sys.argv[1:])
     output_path = get_output_path(OUTPUT_PATH, sys.argv[1])
-    builder = Builder(OPTION_NUM)
+    builder = Builder()
     for i, parsed_txt_path in enumerate(parsed_txt_paths):
         try:
             builder.build(parsed_txt_path, output_path)

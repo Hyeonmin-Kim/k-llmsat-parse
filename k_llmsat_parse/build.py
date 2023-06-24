@@ -4,6 +4,8 @@ import os
 
 CODE_LEN = 3
 
+START_TOKEN = "<START>"
+
 STOPWORD_DICT = {
     'GGG': {'GGG'},
     'QQQ': {'GGG', 'QQQ'},
@@ -22,9 +24,12 @@ PARENT_DICT = {
 
 class Builder:
 
-    def __init__(self, option_num:int):
+    def __init__(self, option_num:int=5, default_q_weight:int=2):
         self.success_flag = True
-        self.option_num = option_num
+        self.meta = {
+            'option_num': option_num,
+            'default_q_weight': default_q_weight
+        }
 
     def build(self, filepath:str, output_path:str):
         # 1. initialization
@@ -41,13 +46,23 @@ class Builder:
         lines = list(map(lambda line: line.strip(), lines))
         # 3. parsing
         temp_idx = 0
+        while lines[temp_idx] != START_TOKEN:
+            self.__parse_meta(lines[temp_idx], filepath)
+            temp_idx += 1
+        temp_idx += 1
         while temp_idx < len(lines):
             temp_idx = self.__parse(temp=dataset, temp_idx=temp_idx, lines=lines, filepath=filepath)
         # 4. saving
         self.__save_as_json(filename, output_path, dataset)
-        # 5. summary
+        # 5. summary & verification
         self.__verify_and_summurize_result(filename, dataset)
 
+    def __parse_meta(self, line:str, filepath:str):
+        try:
+            prop, val = map(lambda x: x.strip(), line.split(':'))
+            self.meta[prop] = int(val) if val.isnumeric() else val
+        except Exception as e:
+            print((f"🚧 Could not parse meta argument of {filepath} : {line}"))
 
     def __parse(self, temp:dict, temp_idx:int, lines:list[str], filepath:str) -> int:
         mode = lines[temp_idx][:3]
@@ -120,12 +135,17 @@ class Builder:
     def __create_question(self, temp:list, temp_idx:int, lines:list[str], filepath:str) -> int:
         new_question = {
             'type': 'question',
-            'number': -1,           ## TODO: Parsing question numbers
-            'weight': 10,           ## TODO: Parsing assigned score for each questions
+            'number': '',           ## TODO: Parsing question numbers
+            'weight': self.meta['default_q_weight'],           ## TODO: Parsing assigned score for each questions
             'direction' : [],
             'passages': [],
             'options': []
         }
+        q_params = lines[temp_idx].split(' ')
+        if len(q_params) >= 2:
+            new_question['number'] = q_params[1]
+        if len(q_params) >= 3:
+            new_question['weight'] = int(q_params[2][1:-1])
         temp_idx += 1
         new_question['direction'].append(lines[temp_idx])
         temp_idx += 1
@@ -150,14 +170,14 @@ class Builder:
     def __verify_and_summurize_result(self, filename:str, dataset:dict, width:int=80):
         issues = []
         print('=' * width)
-        print(f"Build Result Summary of {filename} {'✅' if self.success_flag else '❌'}".center(width))
+        print(f"Build Result Summary of {filename}".center(width))
         print()
         print(f"<{len(dataset['contents'])} groups>".center(width))
         for i, group in enumerate(dataset['contents']):
             verificaiton_result = self.__verify_group(group, i)
             issues += verificaiton_result
             q_names = [str(q['number']) for q in group['questions']]
-            print(f"{'❌' if verificaiton_result else '✅'} Group {str(i + 1).ljust(3)} : {', '.join(q_names)}")
+            print(f"{'❌' if verificaiton_result else '✅'} Group {str(i + 1).ljust(3)} ({str(len(group['passages']))}) : {', '.join(q_names)}")
         print()
         questions = list(chain(*[group['questions'] for group in dataset['contents']]))
         print(f"<{len(questions)} questions>".center(width))
@@ -166,7 +186,7 @@ class Builder:
             verificaiton_result = self.__verify_question(question, j)
             issues += verificaiton_result
             direction = question['direction'][0]
-            print(f"{'❌' if verificaiton_result else '✅'} Q{str(j + 1).ljust(5)} ({len(question['passages'])}) {str(question['weight']).rjust(3)}pts   {direction[:q_width]}{'...' if len(direction) > q_width else ''}")
+            print(f"{'❌' if verificaiton_result else '✅'} Q{str(j + 1).ljust(5)} {str(question['number']).ljust(5)} ({len(question['passages'])}) {str(question['weight']).rjust(3)}pts   {direction[:q_width]}{'...' if len(direction) > q_width else ''}")
         print()
         print(f"<issues>".center(width))
         for issue in issues:
@@ -176,7 +196,7 @@ class Builder:
             self.success_flag = False
         print(f"<stats>".center(width))
         print(f"Number of questions: {len(questions)}")
-        print(f"Total score: {sum([q['weight'] for q in questions])}")
+        print(f"Total score: {sum([q['weight'] for q in questions])}pts")
         print(f"Parsing Result: {'✅ Success' if self.success_flag else '❌ Error present'}")
         print('=' * width)
 
@@ -193,10 +213,12 @@ class Builder:
     
     def __verify_question(self, question:dict, q_idx:int) -> list[str]:
         issues = []
+        if not question['number']:
+            issues.append(f"❌ Question {q_idx} : Empty question number")
         if not question['direction']:
             issues.append(f"❌ Question {q_idx} : Empty direction!")
-        if len(question['options']) != self.option_num:
-            issues.append(f"❌ Question {q_idx} : {len(question['options'])} options are given where {self.option_num} are expected.")
+        if len(question['options']) != self.meta['option_num']:
+            issues.append(f"❌ Question {q_idx} : {len(question['options'])} options are given where {self.meta['option_num']} are expected.")
         if question['passages']:
             for p_idx, passage in enumerate(question['passages']):
                 issues += self.__verify_passage(passage, f"Question {q_idx}, Passage {p_idx}")
