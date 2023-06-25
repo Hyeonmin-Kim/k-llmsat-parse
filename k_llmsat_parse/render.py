@@ -2,26 +2,19 @@ import json
 import os
 import re
 
+## TODO: Refactor using LangChain
+
 class Renderer:
-    input_dir:str
-    output_dir:str
 
-    def __init__(self, input_dir:str, output_dir:str):
-        self.input_dir = input_dir
-        self.output_dir = output_dir
+    def __init__(self):
+        ...
 
-    def render_all(self):
-        for json_file in os.listdir(self.input_dir):
-            if json_file.endswith(".json"):
-                print(f"✅ Start rendering prompt from {json_file}...")
-                self.render_prompt(json_file)
-
-    def render_prompt(self, filename:str):
-        input_filepath = os.path.join(self.input_dir, filename)
-        output_filepath = os.path.join(self.output_dir, filename)
-        with open(input_filepath, 'r', encoding="UTF-8-SIG") as file:
+    def render(self, filepath:str, output_path:str):
+        filename = os.path.basename(filepath).split(".")[0]
+        output_filepath = os.path.join(output_path, f"{filename}.txt")
+        with open(filepath, 'r', encoding="UTF-8-SIG") as file:
             data = json.load(file)
-        with open(output_filepath + ".txt", 'w', encoding="UTF-8-SIG") as file:
+        with open(output_filepath, 'w', encoding="UTF-8-SIG") as file:
             for group in data['contents']:
                 for question in group['questions']:
                     rendered = self._render_question(group['direction'], group['passages'], question)
