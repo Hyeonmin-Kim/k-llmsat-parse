@@ -2,6 +2,16 @@
 
 A helper module for efficient test parsing
 
+## Code structure
+- `k_llmsat_parse` directory에 핵심 logic이 들어있습니다.
+    - pdf로부터 텍스트를 추출하는 logic은 `Extractor`가 맡습니다. 그 과정에서 `parse.py`에 모아둔 helper function을 사용합니다.
+    - 사람이 직적 정제한 텍스트로부터 JSON 데이터를 구축하는 것은 `Builder`가 맡습니다.
+    - JSON 데이터로부터 프롬프트를 만들어내는 것은 `Renderer`가 맡습니다.
+    - `util.py`는 이 모듈을 사용한 스크립트를 짤 때 필요한 helper function을 모아두었습니다.
+- `extract.py`, `build.py`, `render.py`는 콘솔에서 프로그램 수행을 위해 짠 스크립트입니다.
+- `example`은 체험을 위한 예시 파일입니다. `parsing_rules.md`에서는 PoC 과정에서 사용한 텍스트 정제 규칙을 기술했습니다.
+- `intermediaries`, `prompts`, `resources`는 모두 input과 output이 저장되는 폴더로 처음엔 비어있습니다.
+
 ## TODO
 - [ ] Table Parsing
 - [ ] Image Extraction
