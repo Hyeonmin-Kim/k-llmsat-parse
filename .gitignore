@@ -2,4 +2,5 @@ resources/*
 results/*
 intermediaries/converted/*
 intermediaries/parsed/*
+prompts/*
 */__pycache__
