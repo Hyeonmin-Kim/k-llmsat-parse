@@ -3,4 +3,6 @@ results/*
 intermediaries/converted/*
 intermediaries/parsed/*
 prompts/*
+tests
 */__pycache__
+!.gitkeep
