@@ -10,18 +10,23 @@ class Extractor:
     def __init__(self, separate_pages:bool=True):
         self.separate_pages = separate_pages
 
-    def extract(self, filepath:str, output_path:str):
-        texts = self.__extract(filepath)
+    def extract(self, filepath:str, output_path:str, header_height:int=50, footer_height:int=50):
+        texts = self.__extract(filepath, header_height, footer_height)
         self.__save_to_txt(filepath, output_path, texts)
 
-    def __extract(self, filepath:str) -> list[str]:
+    def __extract(self, filepath:str, header_height:int, footer_height:int) -> list[str]:
         reader = PdfReader(filepath)
         total_pages = len(reader.pages)
         texts = []
+        def visitor_body(text, cm, tm, fontDict, fontSize):
+            y = tm[5]
+            if 100 < y < 1030 and (len(text) == 0 or not text.startswith('Çt')):
+                texts[-1] += text
         for curr_page in range(total_pages):
+            texts.append("")
             try:
-                text = reader.pages[curr_page].extract_text()
-                texts.append(standard_parse(text))
+                reader.pages[curr_page].extract_text(visitor_text=visitor_body)
+                texts[-1] = standard_parse(texts[-1])
             except Exception:
                 raise ExtractorError(f"❌ PDF parsing has failed at page {curr_page + 1}.")
         return texts
