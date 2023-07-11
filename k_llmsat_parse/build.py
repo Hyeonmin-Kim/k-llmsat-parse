@@ -71,8 +71,6 @@ class Builder:
             self.__check(mode, temp, *info)
             if mode == 'GGG': 
                 temp_idx = self.__create_group(temp['contents'], *info)
-            elif mode == 'DDD': 
-                temp_idx = self.__create_direction(temp['direction'], *info)
             elif mode == 'PPP': 
                 temp_idx = self.__create_passage(temp['passages'], *info)
             elif mode == 'QQQ': 
@@ -104,17 +102,11 @@ class Builder:
             'questions': [],
         }
         temp_idx += 1
+        new_group['direction'].append(lines[temp_idx])
+        temp_idx += 1
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['GGG']:
             temp_idx = self.__parse(temp=new_group, temp_idx=temp_idx, lines=lines, filepath=filepath)
         temp.append(new_group)
-        return temp_idx
-    
-    ## TODO: Parsing out question numbers
-    def __create_direction(self, temp:list, temp_idx:int, lines:list[str], filepath:str) -> int:
-        temp_idx += 1
-        while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['DDD']:
-            temp.append(lines[temp_idx])
-            temp_idx += 1
         return temp_idx
     
     def __create_passage(self, temp:list, temp_idx:int, lines:list[str], filepath:str) -> int:
