@@ -1,6 +1,7 @@
-from itertools import chain
 import json
 import os
+from itertools import chain
+from re import split
 
 CODE_LEN = 3
 
@@ -102,8 +103,9 @@ class Builder:
             'questions': [],
         }
         temp_idx += 1
-        new_group['direction'].append(lines[temp_idx])
-        temp_idx += 1
+        while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT.keys():
+            new_group['direction'].append(lines[temp_idx])
+            temp_idx += 1
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['GGG']:
             temp_idx = self.__parse(temp=new_group, temp_idx=temp_idx, lines=lines, filepath=filepath)
         temp.append(new_group)
@@ -139,8 +141,9 @@ class Builder:
         if len(q_params) >= 3:
             new_question['weight'] = int(q_params[2][1:-1])
         temp_idx += 1
-        new_question['direction'].append(lines[temp_idx])
-        temp_idx += 1
+        while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT.keys():
+            new_question['direction'].append(lines[temp_idx])
+            temp_idx += 1
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['QQQ']:
             temp_idx = self.__parse(temp=new_question, temp_idx=temp_idx, lines=lines, filepath=filepath)
         temp.append(new_question)
@@ -149,9 +152,12 @@ class Builder:
     ## TODO: Parsing out option numbers
     def __create_options(self, temp:list, temp_idx:int, lines:list[str], filepath:str) -> int:
         temp_idx += 1
+        option_field = ""
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['OOO']:
-            temp.append(lines[temp_idx])
+            option_field += lines[temp_idx]
             temp_idx += 1
+        for option in split("②|③|④|⑤", option_field):
+            temp.append(option)
         return temp_idx
     
     def __save_as_json(self, filename:str, output_path:str, dataset:dict):
