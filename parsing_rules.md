@@ -22,7 +22,6 @@ option_num: 5
 ## Section Tags
 아래 다섯 가지 tag를 규칙에 맞추어 집어넣어 줍니다.
 - `GGG`: 지시 + 지문(1개 이상) + 질문(1개 이상)으로 이루어진 문제 묶음(`group`)의 시작부분
-- `DDD`: `group`에 소속된 지시문
 - `QQQ`: 문제(`question`)의 시작부분
 - `PPP`: `group`이나 `question`에 소속된 지문의 시작부분
 - `OOO`: `question`에 소속된 선지들의 시작부분  
