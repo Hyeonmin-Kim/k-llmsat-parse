@@ -35,7 +35,7 @@ def mark_group(text):
 def mark_question(text):
     matches = re.findall('\d+\.\s*(?!\d)', text)
     for m in matches:
-        text = re.sub(re.escape(m), f"\nQQQ {m[:-1]}\n", text)
+        text = re.sub(re.escape(m), f"\nQQQ {m.split('.')[0]}\n", text)
     return text
 
 def mark_options(text):
