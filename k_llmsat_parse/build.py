@@ -1,6 +1,9 @@
-from itertools import chain
 import json
 import os
+from itertools import chain
+import re
+
+from k_llmsat_parse.util import render_decorations
 
 CODE_LEN = 3
 
@@ -21,6 +24,8 @@ PARENT_DICT = {
     'PPP': {'group', 'question'},
     'OOO': {'question'}
 }
+
+FINISH_TOKENS = list(chain(*[[f".{w}", f"?{w}", f"!{w}"] for w in ['', '"', "'", '”', '’']]))
 
 class Builder:
 
@@ -71,8 +76,6 @@ class Builder:
             self.__check(mode, temp, *info)
             if mode == 'GGG': 
                 temp_idx = self.__create_group(temp['contents'], *info)
-            elif mode == 'DDD': 
-                temp_idx = self.__create_direction(temp['direction'], *info)
             elif mode == 'PPP': 
                 temp_idx = self.__create_passage(temp['passages'], *info)
             elif mode == 'QQQ': 
@@ -104,17 +107,13 @@ class Builder:
             'questions': [],
         }
         temp_idx += 1
+        while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT.keys():
+            new_group['direction'].append(lines[temp_idx])
+            temp_idx += 1
+        new_group['direction'] = self.__rearrange_linebreaks(new_group['direction'], selective=False)
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['GGG']:
             temp_idx = self.__parse(temp=new_group, temp_idx=temp_idx, lines=lines, filepath=filepath)
         temp.append(new_group)
-        return temp_idx
-    
-    ## TODO: Parsing out question numbers
-    def __create_direction(self, temp:list, temp_idx:int, lines:list[str], filepath:str) -> int:
-        temp_idx += 1
-        while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['DDD']:
-            temp.append(lines[temp_idx])
-            temp_idx += 1
         return temp_idx
     
     def __create_passage(self, temp:list, temp_idx:int, lines:list[str], filepath:str) -> int:
@@ -123,12 +122,16 @@ class Builder:
             'name': "",
             'paragraphs': []
         }
-        if len(lines[temp_idx]) > 3:
-            new_passage['name'] = lines[temp_idx][CODE_LEN + 1:]
+        parse_args = re.findall("![a-zA-Z]{3}", lines[temp_idx])
+        name = re.sub("PPP|![a-zA-Z]{3}", "", lines[temp_idx]).strip()
+        if not name.isspace():
+            new_passage['name'] = name
         temp_idx += 1
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['PPP']:
             new_passage['paragraphs'].append(lines[temp_idx])
             temp_idx += 1
+        if not "!nnn" in parse_args:
+            new_passage['paragraphs'] = self.__rearrange_linebreaks(new_passage['paragraphs'])
         temp.append(new_passage)
         return temp_idx
     
@@ -147,8 +150,10 @@ class Builder:
         if len(q_params) >= 3:
             new_question['weight'] = int(q_params[2][1:-1])
         temp_idx += 1
-        new_question['direction'].append(lines[temp_idx])
-        temp_idx += 1
+        while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT.keys():
+            new_question['direction'].append(lines[temp_idx])
+            temp_idx += 1
+        new_question['direction'] = self.__rearrange_linebreaks(new_question['direction'], selective=False)
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['QQQ']:
             temp_idx = self.__parse(temp=new_question, temp_idx=temp_idx, lines=lines, filepath=filepath)
         temp.append(new_question)
@@ -157,10 +162,24 @@ class Builder:
     ## TODO: Parsing out option numbers
     def __create_options(self, temp:list, temp_idx:int, lines:list[str], filepath:str) -> int:
         temp_idx += 1
+        option_field = ""
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['OOO']:
-            temp.append(lines[temp_idx])
+            option_field += lines[temp_idx]
             temp_idx += 1
+        marks = "①|②|③|④|⑤".split("|")
+        for mark, option in zip(marks, re.split("①|②|③|④|⑤", option_field)[1:]):
+            temp.append(f"{mark} {option}")
         return temp_idx
+
+    def __rearrange_linebreaks(self, lines:list[str], selective:bool=True):
+        res:list[str] = [lines[0]]
+        for line in lines[1:]:
+            is_new_line = any([res[-1].endswith(finish) for finish in FINISH_TOKENS])
+            if selective and is_new_line:
+                res.append(line)
+            else:
+                res[-1] += " " + line
+        return res
     
     def __save_as_json(self, filename:str, output_path:str, dataset:dict):
         filepath = os.path.join(output_path, f"{filename}.json")
@@ -228,8 +247,18 @@ class Builder:
         issues = []
         if not passage['paragraphs']:
             issues.append(f"❌ {passage_name} : Empty passage!")
+        for p in passage['paragraphs']:
+            issues += self.__verify_tagging(p)
         return issues
-
+    
+    def __verify_tagging(self, original_text:str) -> list[str]:
+        issues = []
+        issue = lambda c, text: f"⚠️ Token '{c}' discovered: {text}"
+        text = render_decorations(original_text)
+        for c in "rshuibd":
+            if c in text:
+                issues.append(issue(c, re.search(".{0,10}" + c + ".{0,10}", text).group()))
+        return issues
 
 class BuilderError(Exception):
     ...

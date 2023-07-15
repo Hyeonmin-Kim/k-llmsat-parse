@@ -13,8 +13,10 @@ A helper module for efficient test parsing
 - `intermediaries`, `prompts`, `resources`는 모두 input과 output이 저장되는 폴더로 처음엔 비어있습니다.
 
 ## TODO
-- [ ] Table Parsing
+- [ ] Text extraction based on OCR (hopefully with proper indentation)
 - [ ] Image Extraction
+- [ ] Table Extraction
+- [ ] Table Parsing
 
 ## How to Use
 
