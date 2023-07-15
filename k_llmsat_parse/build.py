@@ -1,7 +1,7 @@
 import json
 import os
 from itertools import chain
-from re import split
+import re
 
 CODE_LEN = 3
 
@@ -120,13 +120,16 @@ class Builder:
             'name': "",
             'paragraphs': []
         }
-        if len(lines[temp_idx]) > 3:
-            new_passage['name'] = lines[temp_idx][CODE_LEN + 1:]
+        parse_args = re.findall("![a-zA-Z]{3}", lines[temp_idx])
+        name = re.sub("PPP|![a-zA-Z]{3}", "", lines[temp_idx]).strip()
+        if not name.isspace():
+            new_passage['name'] = name
         temp_idx += 1
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['PPP']:
             new_passage['paragraphs'].append(lines[temp_idx])
             temp_idx += 1
-        new_passage['paragraphs'] = self.__rearrange_linebreaks(new_passage['paragraphs'])
+        if not "!nnn" in parse_args:
+            new_passage['paragraphs'] = self.__rearrange_linebreaks(new_passage['paragraphs'])
         temp.append(new_passage)
         return temp_idx
     
@@ -162,7 +165,7 @@ class Builder:
             option_field += lines[temp_idx]
             temp_idx += 1
         marks = "①|②|③|④|⑤".split("|")
-        for mark, option in zip(marks, split("①|②|③|④|⑤", option_field)[1:]):
+        for mark, option in zip(marks, re.split("①|②|③|④|⑤", option_field)[1:]):
             temp.append(f"{mark} {option}")
         return temp_idx
 
