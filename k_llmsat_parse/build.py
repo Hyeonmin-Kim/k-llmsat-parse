@@ -3,6 +3,8 @@ import os
 from itertools import chain
 import re
 
+from k_llmsat_parse.util import render_decorations
+
 CODE_LEN = 3
 
 START_TOKEN = "<START>"
@@ -245,8 +247,18 @@ class Builder:
         issues = []
         if not passage['paragraphs']:
             issues.append(f"❌ {passage_name} : Empty passage!")
+        for p in passage['paragraphs']:
+            issues += self.__verify_tagging(p)
         return issues
-
+    
+    def __verify_tagging(self, original_text:str) -> list[str]:
+        issues = []
+        issue = lambda c, text: f"⚠️ Token '{c}' discovered: {text}"
+        text = render_decorations(original_text)
+        for c in "rshuibd":
+            if c in text:
+                issues.append(issue(c, re.search(".{0,10}" + c + ".{0,10}", text).group()))
+        return issues
 
 class BuilderError(Exception):
     ...
