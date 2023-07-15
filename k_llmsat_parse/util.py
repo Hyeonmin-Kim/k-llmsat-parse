@@ -13,6 +13,8 @@ def get_input_paths(extension:str, input_path:str, directory:str, filename:str=N
 
 def get_output_path(output_path:str, directory:str) -> str:
     directory_path = os.path.join(output_path, directory)
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
     if not os.path.exists(directory_path):
         os.mkdir(directory_path)
     return directory_path
