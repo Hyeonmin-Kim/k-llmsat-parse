@@ -23,6 +23,8 @@ PARENT_DICT = {
     'OOO': {'question'}
 }
 
+FINISH_TOKENS = list(chain(*[[f".{w}", f"?{w}", f"!{w}"] for w in ['', '"', "'", '”', '’']]))
+
 class Builder:
 
     def __init__(self, option_num:int=5, default_q_weight:int=2):
@@ -106,6 +108,7 @@ class Builder:
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT.keys():
             new_group['direction'].append(lines[temp_idx])
             temp_idx += 1
+        new_group['direction'] = self.__rearrange_linebreaks(new_group['direction'], selective=False)
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['GGG']:
             temp_idx = self.__parse(temp=new_group, temp_idx=temp_idx, lines=lines, filepath=filepath)
         temp.append(new_group)
@@ -123,6 +126,7 @@ class Builder:
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['PPP']:
             new_passage['paragraphs'].append(lines[temp_idx])
             temp_idx += 1
+        new_passage['paragraphs'] = self.__rearrange_linebreaks(new_passage['paragraphs'])
         temp.append(new_passage)
         return temp_idx
     
@@ -144,6 +148,7 @@ class Builder:
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT.keys():
             new_question['direction'].append(lines[temp_idx])
             temp_idx += 1
+        new_question['direction'] = self.__rearrange_linebreaks(new_question['direction'], selective=False)
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['QQQ']:
             temp_idx = self.__parse(temp=new_question, temp_idx=temp_idx, lines=lines, filepath=filepath)
         temp.append(new_question)
@@ -160,6 +165,16 @@ class Builder:
         for mark, option in zip(marks, split("①|②|③|④|⑤", option_field)[1:]):
             temp.append(f"{mark} {option}")
         return temp_idx
+
+    def __rearrange_linebreaks(self, lines:list[str], selective:bool=True):
+        res:list[str] = [lines[0]]
+        for line in lines[1:]:
+            is_new_line = any([res[-1].endswith(finish) for finish in FINISH_TOKENS])
+            if selective and is_new_line:
+                res.append(line)
+            else:
+                res[-1] += " " + line
+        return res
     
     def __save_as_json(self, filename:str, output_path:str, dataset:dict):
         filepath = os.path.join(output_path, f"{filename}.json")
