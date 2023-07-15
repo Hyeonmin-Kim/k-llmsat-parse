@@ -156,8 +156,9 @@ class Builder:
         while temp_idx < len(lines) and lines[temp_idx][:3] not in STOPWORD_DICT['OOO']:
             option_field += lines[temp_idx]
             temp_idx += 1
-        for option in split("②|③|④|⑤", option_field):
-            temp.append(option)
+        marks = "①|②|③|④|⑤".split("|")
+        for mark, option in zip(marks, split("①|②|③|④|⑤", option_field)[1:]):
+            temp.append(f"{mark} {option}")
         return temp_idx
     
     def __save_as_json(self, filename:str, output_path:str, dataset:dict):
